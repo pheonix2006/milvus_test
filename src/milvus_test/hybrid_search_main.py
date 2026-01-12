@@ -1,4 +1,12 @@
 import os
+
+# ==========================================
+# 0. 代理与镜像设置 (必须在导入 pymilvus/transformers 前设置)
+# ==========================================
+os.environ['NO_PROXY'] = 'localhost,127.0.0.1,host.docker.internal'
+os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
+os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = 'True'
+
 import time
 import requests
 from pymilvus import (
@@ -13,11 +21,6 @@ from pymilvus import (
     MilvusClient
 )
 from pymilvus.model.hybrid import BGEM3EmbeddingFunction
-
-# ==========================================
-# 0. 代理设置
-# ==========================================
-os.environ['NO_PROXY'] = 'localhost,127.0.0.1,host.docker.internal'
 
 # ==========================================
 # 1. 初始化 BGE-M3 模型
