@@ -7,4 +7,5 @@ requires-python = ">=3.11"
 dependencies = [
     "pymilvus[model]>=2.6.6",
     "pytest>=9.0.2",
+    "ollama",
 ]
