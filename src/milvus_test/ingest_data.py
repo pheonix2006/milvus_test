@@ -1,5 +1,13 @@
 import os
+import json
 from pathlib import Path
+
+# ==========================================
+# 0. 代理与镜像设置 (必须在导入 pymilvus/transformers 前设置)
+# ==========================================
+os.environ['NO_PROXY'] = 'localhost,127.0.0.1,host.docker.internal'
+os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
+os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = 'True'
 
 from scipy.sparse import csr_matrix
 from pymilvus import (
@@ -11,6 +19,23 @@ from pymilvus import (
     Collection,
 )
 from pymilvus.model.hybrid import BGEM3EmbeddingFunction
+
+
+def load_local_config():
+    config_path = Path(__file__).resolve().parent / "local_config.json"
+    if not config_path.exists():
+        return {}
+    try:
+        return json.loads(config_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+# 读取本地配置文件或环境变量，避免在代码中硬编码密钥
+local_cfg = load_local_config()
+hf_token = os.getenv("HF_TOKEN") or local_cfg.get("HF_TOKEN")
+if hf_token:
+    os.environ["HF_TOKEN"] = hf_token
 
 
 class CSRWithLen(csr_matrix):
@@ -74,24 +99,22 @@ def ingest(docs: list[str], subject: str, batch_size: int, col: Collection, ef: 
 
 def main():
     # ===== 在此处直接填写参数，无需命令行 =====
-    DATA_FILE = "./your_data.txt"           # 待导入的文本文件
-    SEPARATOR = "\n---\n"                   # 文档分隔符，空块会被忽略
-    SUBJECT = "general"                    # 可选标签字段
-    BATCH_SIZE = 200                        # 每批插入数量
+    DATA_FILE = "C:\\Users\\AS92K\\Downloads\\knowledge_base\\Natural_gas_General_knowledge\\content\\general_knowledge_TWC_QA20250402(Bryan人工check后).md"         # 待导入的文本文件
+    SEPARATOR = "# separator"                   # 文档分隔符，空块会被忽略
+    SUBJECT = "Natural_gas_General_knowledge"                    # 可选标签字段
+    BATCH_SIZE = 2000                        # 每批插入数量
     URI = "http://localhost:19530"          # Milvus URI
     TOKEN = "root:Milvus"                  # Milvus token
     COLLECTION = "hybrid_search_collection" # 目标集合名
-    PREVIEW = False                         # True 时仅预览前 10 条切分，不入库
-
-    # Honor existing env settings for HF
-    os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
-    os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "True")
+    PREVIEW = True                         # True 时仅预览前 10 条切分，不入库
 
     if not os.getenv("HF_TOKEN"):
-        print("[WARN] HF_TOKEN not set; set it via env or local_config if model needs authentication")
+        print("[WARN] HF_TOKEN 未设置：如模型需要鉴权，请在环境变量或 local_config.json 中配置")
 
+    print("正在加载 BGE-M3 模型 (可能会下载模型权重)...")
     ef = BGEM3EmbeddingFunction(use_fp16=False, device="cpu")
     dense_dim = ef.dim["dense"]
+    print(f"BGE-M3 模型加载完成。稠密向量维度: {dense_dim}")
 
     col = ensure_collection(COLLECTION, dense_dim, URI, TOKEN)
 

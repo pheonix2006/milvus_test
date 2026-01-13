@@ -11,6 +11,8 @@ os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = 'True'
 import time
 import json
 import requests
+import numpy as np
+from scipy.sparse import csr_matrix
 from pymilvus import (
     connections,
     utility,
@@ -23,6 +25,12 @@ from pymilvus import (
     MilvusClient
 )
 from pymilvus.model.hybrid import BGEM3EmbeddingFunction
+
+
+class CSRWithLen(csr_matrix):
+    # Avoid scipy sparse array length ambiguity
+    def __len__(self):  # type: ignore[override]
+        return self.shape[0]
 
 
 def load_local_config():
@@ -119,13 +127,18 @@ docs = [
 print("正在生成稠密与稀疏向量...")
 embeddings = ef(docs)
 
+# 稀疏向量：coo_array -> csr_matrix(float32) with explicit __len__
+sparse_vectors = CSRWithLen(embeddings["sparse"]).tocsr().astype(np.float32)
+# 稠密向量：list/ndarray -> ndarray(float32)
+dense_vectors = np.asarray(embeddings["dense"], dtype=np.float32, order="C")
+
 # 插入数据
 print("正在插入数据...")
 entities = [
     docs,                                  # text
     ["history"] * len(docs),               # subject (示例)
-    embeddings["sparse"],                  # sparse_vector
-    embeddings["dense"]                    # dense_vector
+    sparse_vectors,                        # sparse_vector
+    dense_vectors                          # dense_vector
 ]
 col.insert(entities)
 col.flush()
@@ -136,11 +149,13 @@ print(f"数据插入成功。当前实体总数: {col.num_entities}")
 # ==========================================
 def hybrid_retrieval(query_text, top_k=10):
     query_embeddings = ef([query_text])
+    query_sparse = CSRWithLen(query_embeddings["sparse"]).tocsr().astype(np.float32)
+    query_dense = np.asarray(query_embeddings["dense"], dtype=np.float32, order="C")
     
     # 稠密检索请求
     dense_search_params = {"metric_type": "IP", "params": {}}
     dense_req = AnnSearchRequest(
-        query_embeddings["dense"], 
+        query_dense, 
         "dense_vector", 
         dense_search_params, 
         limit=top_k
@@ -149,7 +164,7 @@ def hybrid_retrieval(query_text, top_k=10):
     # 稀疏检索请求
     sparse_search_params = {"metric_type": "IP", "params": {}}
     sparse_req = AnnSearchRequest(
-        query_embeddings["sparse"], 
+        query_sparse, 
         "sparse_vector", 
         sparse_search_params, 
         limit=top_k
