@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 # ==========================================
 # 0. 代理与镜像设置 (必须在导入 pymilvus/transformers 前设置)
@@ -8,6 +9,7 @@ os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = 'True'
 
 import time
+import json
 import requests
 from pymilvus import (
     connections,
@@ -21,6 +23,25 @@ from pymilvus import (
     MilvusClient
 )
 from pymilvus.model.hybrid import BGEM3EmbeddingFunction
+
+
+def load_local_config():
+    config_path = Path(__file__).resolve().parent / "local_config.json"
+    if not config_path.exists():
+        return {}
+    try:
+        return json.loads(config_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+# 读取本地配置文件或环境变量，避免在代码中硬编码密钥
+local_cfg = load_local_config()
+hf_token = os.getenv("HF_TOKEN") or local_cfg.get("HF_TOKEN")
+if hf_token:
+    os.environ["HF_TOKEN"] = hf_token
+else:
+    print("[WARN] HF_TOKEN 未设置：如模型需要鉴权，请在环境变量或 local_config.json 中配置")
 
 # ==========================================
 # 1. 初始化 BGE-M3 模型
