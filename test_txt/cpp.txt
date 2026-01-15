@@ -1,0 +1,29 @@
+# separator
+C++ 中的 RAII（Resource Acquisition Is Initialization）机制通过对象生命周期自动管理资源，如内存、文件句柄等，确保异常安全。
+
+# separator
+智能指针 std::unique_ptr 和 std::shared_ptr 是 C++11 引入的内存管理工具，可有效避免裸指针导致的内存泄漏。
+
+# separator
+C++ 模板支持泛型编程，允许编写与类型无关的代码，标准库中的 std::vector 和 std::sort 都是基于模板实现的。
+
+# separator
+移动语义（move semantics）通过右值引用（rvalue reference）和 std::move 实现资源的高效转移，避免不必要的深拷贝。
+
+# separator
+在 C++ 中，虚函数通过虚表（vtable）实现运行时多态，但会带来轻微的性能开销和对象体积增加。
+
+# separator
+constexpr 关键字允许在编译期计算表达式或调用函数，有助于提升运行时性能并支持编译期验证。
+
+# separator
+C++ 的命名空间（namespace）用于避免全局作用域中的名称冲突，std 就是标准库使用的命名空间。
+
+# separator
+lambda 表达式自 C++11 起支持，可方便地定义匿名函数对象，常用于 STL 算法如 std::for_each 或 std::transform。
+
+# separator
+C++ 中的头文件（.h 或 .hpp）通常声明接口，而实现放在源文件（.cpp）中，需通过 include 引入依赖。
+
+# separator
+内联函数（inline function）建议编译器将函数体直接插入调用处，减少函数调用开销，但不保证一定内联
