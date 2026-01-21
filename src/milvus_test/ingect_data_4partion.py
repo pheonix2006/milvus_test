@@ -37,14 +37,14 @@ DOC_SEPARATOR = "# separator"  # 文档分隔符，空块会被忽略
 # 文件名到分区名的映射 (请根据你实际的 txt 文件名修改 key)
 # Value 必须符合 Milvus 分区命名规范 (字母下划线)
 FILE_TO_PARTITION_MAP = {
-    "ai.txt": "partition_ai",     # 示例：文件名 -> 分区名
-    "cpp.txt": "partition_cpp",
-    "python.txt": "partition_py",
-    "machine_learning.txt": "partition_ml"
+    "merged_document.md": "partition_diesel",     # 示例：文件名 -> 分区名
+    "OBD故障码汇总_WCF_20240719_sheetNG(15N).md": "partition_Natural_gas_15N",
+    "CCG_故障码速查_2024_V1_sheet3.md": "partition_Natural_gas_12N",
+    "general_knowledge_TWC_QA20250402(Bryan人工check后).md": "partition_Natural_gas_General_knowledge",
 }
 
 # 嵌入模型配置
-BATCH_SIZE = 10  # BGE-M3 比较吃显存/内存，建议根据机器配置调整
+BATCH_SIZE = 50  # BGE-M3 比较吃显存/内存，建议根据机器配置调整
 DENSE_DIM = 1024
 
 class CSRWithLen(csr_matrix):

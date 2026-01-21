@@ -21,6 +21,7 @@ venv/
 # Environment variables
 .env
 src/milvus_test/local_config.json
+test_txt/*.md
 
 # Workflow files
 .spec-workflow

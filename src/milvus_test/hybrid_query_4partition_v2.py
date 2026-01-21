@@ -3,6 +3,9 @@ import json
 import time
 from pathlib import Path
 import numpy as np
+os.environ['NO_PROXY'] = 'localhost,127.0.0.1,host.docker.internal'
+os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
+os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = 'True'
 from scipy.sparse import csr_matrix
 from pymilvus import (
     connections,
@@ -16,9 +19,7 @@ from pymilvus.model.hybrid import BGEM3EmbeddingFunction
 # ==========================================
 # 0. 环境与配置
 # ==========================================
-os.environ['NO_PROXY'] = 'localhost,127.0.0.1,host.docker.internal'
-os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
-os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = 'True'
+
 
 URI = "http://localhost:19530"
 TOKEN = "root:Milvus"
@@ -45,14 +46,14 @@ class CSRWithLen(csr_matrix):
         return self.shape[0]
 
 # ==========================================
-# 1. Router 策略定义 (映射到你的实际分区)
+# 1. Router 策略定义 (映射到最新的物理分区)
 # ==========================================
 # Key 对应查询意图，Value 对应 Milvus 物理分区名
 STRATEGY_MAP = {
-    "ai": ["partition_ai"],
-    "cpp": ["partition_cpp"],
-    "python": ["partition_py"],
-    "ml": ["partition_ml"],
+    "diesel": ["partition_diesel"],                   # 柴油机
+    "gas_15n": ["partition_Natural_gas_15N"],         # 15N 燃气机
+    "gas_12n": ["partition_Natural_gas_12N"],         # 12N 燃气机
+    "gas_general": ["partition_Natural_gas_General_knowledge"], # 燃气机通用知识
     "global": []  # 全局搜索
 }
 
@@ -134,17 +135,17 @@ class RouterRetriever:
 if __name__ == "__main__":
     retriever = RouterRetriever(URI, TOKEN, COLLECTION_NAME)
 
-    # 场景示例 1: 定向搜索 Python 分区
-    q1 = "How to use decorators in Python?"
-    hits, lat = retriever.search(q1, intent="python", top_k=3)
+    # 场景示例 1: 定向搜索 柴油/Diesel 分区
+    q1 = "柴油发动机故障诊断建议有哪些？"
+    hits, lat = retriever.search(q1, intent="diesel", top_k=3)
     
-    print(f"\n--- Python 分区搜索结果 (耗时: {lat:.2f}ms) ---")
+    print(f"\n--- Diesel 分区搜索结果 (耗时: {lat:.2f}ms) ---")
     for i, hit in enumerate(hits):
         meta = hit.entity.get("metadata")
         print(f"{i+1}. [Score: {hit.score:.4f}] 分区: {meta.get('partition')} | 内容预览: {hit.entity.get('content')[:100]}...")
 
     # 场景示例 2: 全局搜索
-    q2 = "What is reinforcement learning?"
+    q2 = "天然气发动机 15N 与 12N 的主要区别是什么？"
     hits, lat = retriever.search(q2, intent="global", top_k=3)
     
     print(f"\n--- 全局搜索结果 (耗时: {lat:.2f}ms) ---")
@@ -152,11 +153,11 @@ if __name__ == "__main__":
         meta = hit.entity.get("metadata")
         print(f"{i+1}. [Score: {hit.score:.4f}] 分区: {meta.get('partition')} | 内容预览: {hit.entity.get('content')[:100]}...")
 
-    # 场景示例 3: C++ 分区
-    q3 = "What are the features of C++20?"
-    hits, lat = retriever.search(q3, intent="cpp", top_k=3)
+    # 场景示例 3: 15N 燃气机定向搜索
+    q3 = "15N 发动机的 OBD 故障码 P0300 应该如何处理？"
+    hits, lat = retriever.search(q3, intent="gas_15n", top_k=3)
     
-    print(f"\n--- C++ 分区搜索结果 (耗时: {lat:.2f}ms) ---")
+    print(f"\n--- 15N 燃气机分区搜索结果 (耗时: {lat:.2f}ms) ---")
     for i, hit in enumerate(hits):
         meta = hit.entity.get("metadata")
         print(f"{i+1}. [Score: {hit.score:.4f}] 分区: {meta.get('partition')} | 内容预览: {hit.entity.get('content')[:100]}...")

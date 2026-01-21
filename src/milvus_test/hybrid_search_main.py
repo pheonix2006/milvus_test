@@ -63,7 +63,7 @@ print(f"BGE-M3 模型加载完成。稠密向量维度: {dense_dim}")
 # ==========================================
 # 2. Milvus 连接与 Schema 设置
 # ==========================================
-URI = "http://localhost:19530"
+URI = "http://host.docker.internal:19530"
 TOKEN = "root:Milvus"
 collection_name = "hybrid_search_collection"
 
@@ -214,7 +214,8 @@ def custom_rerank(query, milvus_hits, host="http://localhost:9997/v1"):
     }
     
     try:
-        response = requests.post(url, json=payload, timeout=30)
+        # 增加超时时间到 300s
+        response = requests.post(url, json=payload, timeout=300)
         response.raise_for_status()
         rerank_data = response.json()
         
