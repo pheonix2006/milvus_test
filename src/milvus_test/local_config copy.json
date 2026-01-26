@@ -1,3 +1,40 @@
 {
-  "HF_TOKEN": "your_huggingface_token_here"  
+  "HF_TOKEN": "your_hf_token_here",
+  "active_dataset": "tech",
+  "datasets": {
+    "engine": {
+      "collection_name": "hybrid_rag_collection_v1",
+      "data_dir": "test_txt",
+      "file_to_partition_map": {
+        "merged_document.md": "partition_diesel",
+        "OBD故障码汇总_WCF_20240719_sheetNG(15N).md": "partition_Natural_gas_15N",
+        "CCG_故障码速查_2024_V1_sheet3.md": "partition_Natural_gas_12N",
+        "general_knowledge_TWC_QA20250402(Bryan人工check后).md": "partition_Natural_gas_General_knowledge"
+      },
+      "strategy_map": {
+        "diesel": ["partition_diesel"],
+        "gas_15n": ["partition_Natural_gas_15N"],
+        "gas_12n": ["partition_Natural_gas_12N"],
+        "gas_general": ["partition_Natural_gas_General_knowledge"],
+        "global": []
+      }
+    },
+    "tech": {
+      "collection_name": "hybrid_rag_collection_v1_test",
+      "data_dir": "test_txt",
+      "file_to_partition_map": {
+        "ai.txt": "partition_ai",
+        "cpp.txt": "partition_cpp",
+        "python.txt": "partition_py",
+        "machine_learning.txt": "partition_ml"
+      },
+      "strategy_map": {
+        "ai": ["partition_ai"],
+        "cpp": ["partition_cpp"],
+        "python": ["partition_py"],
+        "ml": ["partition_ml"],
+        "global": []
+      }
+    }
+  }
 }

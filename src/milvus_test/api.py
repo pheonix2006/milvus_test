@@ -12,10 +12,10 @@ os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = 'True'
 
 # 导入现有的检索逻辑
 try:
-    from milvus_test.hybrid_query_4partition_v2 import RouterRetriever, URI, TOKEN, COLLECTION_NAME
+    from milvus_test.unified_query import RouterRetriever, URI, TOKEN
 except ImportError:
     # 处理直接运行脚本时的路径问题
-    from hybrid_query_4partition_v2 import RouterRetriever, URI, TOKEN, COLLECTION_NAME
+    from unified_query import RouterRetriever, URI, TOKEN
 
 app = FastAPI(
     title="Milvus Hybrid Search API",
@@ -29,8 +29,8 @@ retriever = None
 @app.on_event("startup")
 def startup_event():
     global retriever
-    print("正在初始化检索器...")
-    retriever = RouterRetriever(URI, TOKEN, COLLECTION_NAME)
+    print("正在初始化统一检索器...")
+    retriever = RouterRetriever(URI, TOKEN)
     print("检索器初始化完成。")
 
 class SearchRequest(BaseModel):
@@ -143,7 +143,7 @@ async def rerank_endpoint(req: RerankRequest):
         # 2. 调用 Xinference Rerank 服务 (分批处理以节省内存)
         base_url = "http://localhost:9997/v1"
         rerank_url = f"{base_url}/rerank"
-        batch_size = 2
+        batch_size = 5
         all_scored_results = []
         
         print(f"正在发起分批重排序: '{req.query}' (总文档数: {len(pure_docs)}, 每批: {batch_size})")

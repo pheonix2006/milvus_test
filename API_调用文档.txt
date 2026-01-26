@@ -1,0 +1,108 @@
+Milvus 混合检索与重排序 API 调用文档
+
+1. 基础信息
+- 服务地址: http://<服务器IP>:8000
+- 数据格式: Content-Type: application/json
+- 核心组件: 基于 FastAPI 构建，集成 Milvus 向量数据库与 Xinference 重排序模型服务。
+
+--------------------------------------------------
+
+2. 接口详情
+
+2.1 混合检索接口 (/search)
+该接口用于从 Milvus 数据库中，根据查询文本和指定的业务策略检索相关的文档片段。
+
+- URL: /search
+- Method: POST
+- 请求参数 (JSON):
+    - query: (String) 必填。用户的查询文本。
+    - top_k: (Integer) 默认 60。返回的粗排文档数量。
+    - strategy: (String) 默认 "global"。检索策略，可选值: ai, cpp, python, ml, global。
+
+- 请求示例:
+{
+  "query": "什么是机器学习？",
+  "top_k": 50,
+  "strategy": "ml"
+}
+
+- 响应示例:
+{
+  "pure_documents": [
+    "机器学习是一门多领域交叉学科...",
+    "深度学习是机器学习的一个子集..."
+  ]
+}
+
+--------------------------------------------------
+
+2.2 重排序接口 (/rerank)
+该接口接收查询文本和一组文档，调用深度学习模型（如 BGE Reranker）进行精排，返回得分最高的文档及其格式化结果。
+
+- URL: /rerank
+- Method: POST
+- 请求参数 (JSON):
+    - query: (String) 必填。原始查询问题。
+    - documents: (Object/String) 必填。待重排数据。支持 {"pure_documents": [...]} 结构。
+    - top_k: (Integer) 默认 10。精排后返回的最终文档数量。
+    - model: (String) 默认 "bge-reranker-v2-m3"。重排序模型名称。
+    - score_threshold: (Float) 默认 -10.0。相关性评分阈值，低于该值的文档将被过滤。
+
+- 请求示例:
+{
+  "query": "什么是机器学习？",
+  "documents": {
+    "pure_documents": [
+      "文档片段1...",
+      "文档片段2..."
+    ]
+  },
+  "top_k": 3,
+  "score_threshold": 0.5
+}
+
+- 响应示例:
+{
+  "pure_documents": ["文档片段1..."],
+  "formatted_result": "资料来源 [1]\n文档片段1..."
+}
+
+--------------------------------------------------
+
+3. 典型调用流程 (Python 示例)
+
+import requests
+
+BASE_URL = "http://127.0.0.1:8000"
+
+def get_answer_context(user_query):
+    # 1. 混合检索
+    search_payload = {
+        "query": user_query,
+        "top_k": 60,
+        "strategy": "global"
+    }
+    search_res = requests.post(f"{BASE_URL}/search", json=search_payload).json()
+    
+    # 2. 重排序 (精排)
+    rerank_payload = {
+        "query": user_query,
+        "documents": search_res, # 直接透传 search 的结果
+        "top_k": 5
+    }
+    rerank_res = requests.post(f"{BASE_URL}/rerank", json=rerank_payload).json()
+    
+    # 3. 获取精排后的文本
+    return rerank_res["formatted_result"]
+
+# 使用
+if __name__ == "__main__":
+    context = get_answer_context("Python 装饰器的作用")
+    print(context)
+
+--------------------------------------------------
+
+4. 注意事项
+1. 模型加载: API 在初次启动时会初始化检索器，首次调用可能存在微量延迟。
+2. Xinference 服务: /rerank 接口依赖于 http://localhost:9997 的 Xinference 服务，请确认其已启动。
+3. 超时处理: 由于模型推理耗时，建议调用方设置至少 60 秒的 timeout。
