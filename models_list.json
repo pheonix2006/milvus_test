@@ -1,1 +1,0 @@
-{"object": "list", "data": [{"id": "bge-reranker-v2-m3", "object": "model", "created": 0, "owned_by": "xinference", "model_type": "rerank", "address": "0.0.0.0:36411", "accelerators": [], "type": "normal", "model_name": "bge-reranker-v2-m3", "language": ["en", "zh", "multilingual"], "model_revision": null, "replica": 1}]}
