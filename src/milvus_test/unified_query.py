@@ -3,6 +3,11 @@ import json
 import time
 from pathlib import Path
 import numpy as np
+from dotenv import load_dotenv
+
+# 加载 .env 文件
+load_dotenv()
+
 # ==========================================
 os.environ['NO_PROXY'] = 'localhost,127.0.0.1,host.docker.internal'
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
@@ -19,8 +24,8 @@ from pymilvus.model.hybrid import BGEM3EmbeddingFunction
 
 
 
-URI = "http://localhost:19530"
-TOKEN = "root:Milvus"
+URI = os.getenv("MILVUS_URI", "http://localhost:19530")
+TOKEN = os.getenv("MILVUS_TOKEN", "root:Milvus")
 
 def load_config():
     config_path = Path(__file__).resolve().parent / "local_config.json"

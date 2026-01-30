@@ -16,4 +16,5 @@ dependencies = [
     "fastapi>=0.115.0",
     "uvicorn>=0.30.0",
     "requests>=2.32.5",
+    "python-dotenv>=1.0.1",
 ]

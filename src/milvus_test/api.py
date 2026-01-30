@@ -5,6 +5,10 @@ import os
 import uvicorn
 import json
 import requests
+from dotenv import load_dotenv
+
+# 加载 .env 文件
+load_dotenv()
 
 os.environ['NO_PROXY'] = 'localhost,127.0.0.1,host.docker.internal'
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
@@ -51,6 +55,18 @@ class RerankRequest(BaseModel):
 class RerankResponse(BaseModel):
     pure_documents: List[str]
     formatted_result: str
+
+class ChatRequest(BaseModel):
+    prompt: str
+    model: str = "gpt-5.1"
+    system_prompt: Optional[str] = "你是一个专业的人工智能助手。"
+
+class ChatResponse(BaseModel):
+    answer: str
+
+# Azure API 配置
+AZURE_API_KEY = os.getenv("AZURE_API_KEY", "your_api_key_here")
+AZURE_BASE_URL = os.getenv("AZURE_BASE_URL", "your_base_url_here")
 
 def main(input_data: Any) -> dict:
     """
@@ -143,7 +159,7 @@ async def rerank_endpoint(req: RerankRequest):
         # 2. 调用 Xinference Rerank 服务 (分批处理以节省内存)
         base_url = "http://localhost:9997/v1"
         rerank_url = f"{base_url}/rerank"
-        batch_size = 5
+        batch_size = 6
         all_scored_results = []
         
         print(f"正在发起分批重排序: '{req.query}' (总文档数: {len(pure_docs)}, 每批: {batch_size})")
@@ -194,6 +210,65 @@ async def rerank_endpoint(req: RerankRequest):
         
     except Exception as e:
         print(f"重排序出错: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat_endpoint(req: ChatRequest):
+    """
+    Azure 定制格式聊天接口
+    - **prompt**: 用户输入的提示词
+    - **model**: 指定模型 (默认 gpt-5.1)
+    - **system_prompt**: 系统提示词
+    """
+    headers = {
+        "Content-Type": "application/json",
+        "api-key": AZURE_API_KEY
+    }
+    
+    # 构建输入内容 (由于 custom_azure 格式只接受单个 'input' 字符串，我们将 system prompt 拼接进去)
+    full_input = f"{req.system_prompt}\n\n用户问题：{req.prompt}" if req.system_prompt else req.prompt
+    
+    payload = {
+        "input": full_input,
+        "model": req.model
+    }
+    
+    try:
+        print(f"正在调用 Azure LLM API: {AZURE_BASE_URL}")
+        response = requests.post(AZURE_BASE_URL, headers=headers, json=payload, timeout=60)
+        response.raise_for_status()
+        
+        result = response.json()
+        # 按照 custom_azure 格式解析 output 字段
+        raw_output = result.get("output", "错误：未在返回结果中找到 'output' 字段")
+        
+        # 鲁棒性处理：针对复杂的 Azure 返回结构进行深度解析
+        if isinstance(raw_output, list) and len(raw_output) > 0:
+            first_msg = raw_output[0]
+            if isinstance(first_msg, dict):
+                # 检查是否是 [{'content': [{'text': '...'}]}] 这种深层结构
+                content = first_msg.get("content")
+                if isinstance(content, list) and len(content) > 0:
+                    first_content = content[0]
+                    if isinstance(first_content, dict) and "text" in first_content:
+                        answer = first_content["text"]
+                    else:
+                        answer = str(first_content)
+                else:
+                    # 退而求其次检查常见的 content 或 text 键
+                    answer = first_msg.get("content") or first_msg.get("text") or str(first_msg)
+            else:
+                answer = str(first_msg)
+        else:
+            answer = str(raw_output)
+        
+        # 再次确保 answer 一定是字符串，防止 Pydantic 校验失败
+        if not isinstance(answer, str):
+            answer = str(answer)
+            
+        return ChatResponse(answer=answer)
+    except Exception as e:
+        print(f"Chat API 调用出错: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
